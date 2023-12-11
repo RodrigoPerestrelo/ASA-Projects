@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <stack>
-#include <unordered_set>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,6 +14,19 @@ public:
 
     void adicionarAresta(int origem, int destino) {
         listaAdj[origem].push_back(destino);
+    }
+
+     void imprimirGrafo() {
+        for (int i = 0; i < vertices; ++i) {
+            cout << "Vértice " << i << ": ";
+            for (int j = 0; j < listaAdj[i].size(); ++j) {
+                cout << listaAdj[i][j];
+                if (j < listaAdj[i].size() - 1) {
+                    cout << " -> ";
+                }
+            }
+            cout << endl;
+        }
     }
 
     /* Visita os vértices da lista de adjacências do vertice dado como arg */
@@ -30,20 +43,24 @@ public:
     }
 
     /* Faz a DFS no vertice dado */
-    void DFS(int vertice, vector<bool>& visitados) {
+
+    void DFS(int vertice, vector<bool>& visitados, int index, vector<int>& SCC_Indexs) {
+        SCC_Indexs[vertice] = index;
         visitados[vertice] = true;
         cout << vertice << " ";
 
+        
         for (int vizinho : listaAdj[vertice]) {
             if (!visitados[vizinho]) {
-                DFS(vizinho, visitados);
+                DFS(vizinho, visitados, index, SCC_Indexs);
             }
         }
     }
 
-    void imprimirComponentesFortementeConectados() {
+    void imprimirComponentesFortementeConectados(vector<int>& SCC_Indexs) {
         stack<int> pilha;
         vector<bool> visitados(vertices, false);
+        int index = 0;
 
         /* Usado para preencher a pilha, depois deste loop a pilha terá 
         no topo os vertices com tempo de fim maior */
@@ -65,38 +82,42 @@ public:
             pilha.pop();
 
             if (!visitados[vertice]) {
-                grafoTransposto.DFS(vertice, visitados);
+                // É AQUI, fazes pushback num vetor de vetores:
+                // vector<vector<int>>
+                //o de dentro: vector<int> é feito na DFS, o de fora é dar pushback do que foi obtido apartir da DFS
+                grafoTransposto.DFS(vertice, visitados, index, SCC_Indexs);
+                index++;
                 cout <<endl;
             }
         }
     }
 
-    Grafo BuildGscc(const Grafo& G, const vector<unordered_set<int>>& C1) {
-        Grafo Gscc(C1.size());
-        int C = C1.size();
-        vector<int> A(C, 0);
+    Grafo BuildGscc(const Grafo& GivenGraph, const vector<vector<int>>& SCCs_Vector, vector<int> SCC_Indexs) {
+        Grafo SCC_Graph(SCCs_Vector.size());
+        int SCC_Graph_Size = SCCs_Vector.size();
+        vector<int> A(SCC_Graph_Size, 0);
 
-        for (const auto& C_scc : C1) {
-            for (int u : C_scc) {
-                for (int v : G.listaAdj[u]) {
-                    if (C_scc.count(v) == 0 && A[v] == 0) {
-                        Gscc.adicionarAresta(u, v);
-                        A[v] = 1;
+        for (const vector<int>& SCC : SCCs_Vector) {
+            for (int vertice : SCC) {
+                for (int vizinho : GivenGraph.listaAdj[vertice]) {
+                    printf("-%d %d-\n", vertice, vizinho);
+                    if ((SCC_Indexs[vertice] != SCC_Indexs[vizinho]) && A[SCC_Indexs[vizinho]] == 0) {
+                        SCC_Graph.adicionarAresta(SCC_Indexs[vertice], SCC_Indexs[vizinho]);
+                        A[SCC_Indexs[vizinho]] = 1;
                     }
                 }
-            }
 
-            for (int u : C_scc) {
-                for (int v : Gscc.listaAdj[u]) {
-                    A[v] = 0;
+                for (int vertice : SCC) {
+                    for (int vizinho : GivenGraph.listaAdj[vertice]) {
+                        A[SCC_Indexs[vizinho]] = 0;
+                    }
                 }
             }
         }
 
-        return Gscc;
+    return SCC_Graph;
     }
 
-private:
     Grafo obterGrafoTransposto() {
         Grafo grafoTransposto(vertices);
 
@@ -112,23 +133,30 @@ private:
 
 int main() {
     Grafo grafo(5);
-    Grafo grafo2(3);
 
     grafo.adicionarAresta(0, 2);
     grafo.adicionarAresta(2, 1);
     grafo.adicionarAresta(1, 0);
     grafo.adicionarAresta(0, 3);
     grafo.adicionarAresta(3, 4);
+    
+    vector<int> SCC_Indexs = vector<int>(5, 0);
+    grafo.imprimirComponentesFortementeConectados(SCC_Indexs);
 
-    cout << "Componentes Fortemente Conectados:" << endl;
-    grafo.imprimirComponentesFortementeConectados();
 
+    //FAZER: TENTAR METER A FUNÇÃO IMPRIMIRCOMPONENTESFORTEMENTECONECTADOS FAZER OS VETORES QUE ESTÃO ABAIXO
+    //MANDAR UM vector<vector<int>> e fazer com que essa função altere de acordo com o que for preciso
+    //TEM COMENTÁRIOS NO SITIO QUE É PRA FAZER
     vector<int> primeiro = {0,1,2};
     vector<int> segundo = {3};
     vector<int> terceiro = {4};
-    
-    vector<unordered_set<int>> SCCs = {primeiro, segundo, terceiro};
-    grafo2 = grafo.BuildGscc(grafo, SCCs);
+    vector<vector<int>> SCCs = {primeiro, segundo, terceiro};
+
+    // Isto tá a funcionar já
+    // Falta fazer com que aqueles prints dos SCCs passem a ser pushbacks num vetor de SCCs
+    // para fazer estes vetores que eu meti à mão, o primeiro, segundo e o terceiro.
+    Grafo grafo2 = grafo.BuildGscc(grafo, SCCs, SCC_Indexs);
+    grafo2.imprimirGrafo();
 
     return 0;
 }
