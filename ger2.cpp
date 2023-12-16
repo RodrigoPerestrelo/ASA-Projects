@@ -5,147 +5,117 @@
 
 using namespace std;
 
-class Grafo {
-    int vertices;
+class Graph {
+    int maxVertex;
     vector<vector<int> > adj;
+    vector<vector<int> > reverseAdj;
 
 public:
-    Grafo(int v) : vertices(v), adj(v) {}
+    Graph(int maxVertex) : maxVertex(maxVertex), adj(maxVertex + 1), reverseAdj(maxVertex + 1) {}
 
-    void adicionarAresta(int arestas) {
-    for (int i = 0; i < arestas; i++) {
-        int u, v;
-        printf("Digite a aresta %d: ", i + 1);
-        scanf("%d %d", &u, &v);
-
-        // Verifica se os índices estão dentro dos limites
-        if (u >= 0 && u < vertices && v >= 0 && v < vertices) {
-            adj[u].push_back(v);
-        } else {
-            printf("Índices inválidos!\n");
-            i--;  // Para compensar a entrada inválida
+    void buildGraph(int numEdges) {
+        for (int i = 1; i <= numEdges; i++) {
+            int u, v;
+            scanf("%d %d", &u, &v);
+            if (u > 0 && u <= maxVertex && v > 0 && v <= maxVertex) {
+                adj[u].push_back(v);
+                reverseAdj[v].push_back(u);
+            } else i--;
         }
     }
-}
 
-    void dfsIterativa(int inicio, vector<int>& temposFim) {
-        vector<bool> visitado(vertices, false);
-        stack<pair<int, int>> pilha;  // Usamos um par (vértice, tempo de fim)
+    void iterativeDFS(int firstVertex, vector<int>& resultVector) {
+        vector<bool> visited(maxVertex + 1, false);
+        stack<pair<int, int>> stack;
 
-        for (int i = 0; i < vertices; ++i) {
-            if (!visitado[i]) {
-                pilha.push({i, 0});
+        for (int i = 1; i <= maxVertex; i++) {
+            if (!visited[i]) {
+                stack.push({i, 0});
 
-                while (!pilha.empty()) {
-                    int atual = pilha.top().first;
-                    int& tempoFim = pilha.top().second;
-
-                    if (tempoFim == 0) {
-                        // Primeira vez que visitamos o vértice
-                        printf("Visitando vértice 1ª vez %d\n", atual);
-                        visitado[atual] = true;
+                while (!stack.empty()) {
+                    int current = stack.top().first;
+                    int &endTime = stack.top().second;
+                    if (endTime == 0) {
+                        visited[current] = true;
                     }
-
-                    bool explorado = true;
-
-                    for (int vizinho : adj[atual]) {
-                        if (!visitado[vizinho]) {
-                            pilha.push({vizinho, 0});
-                            explorado = false;
+                    bool explored = true;
+                    for (int neighbour : adj[current]) {
+                        if (!visited[neighbour]) {
+                            stack.push({neighbour, 0});
+                            explored = false;
                             break;
                         }
                     }
-
-                    if (explorado) {
-                        // Vértice totalmente explorado, adiciona o tempo de fim
-                        temposFim.push_back(atual);
-                        pilha.pop();
-                    } else {
-                        // Incrementa o tempo de fim para a próxima iteração
-                        ++tempoFim;
-                    }
+                    if (explored) {
+                        resultVector.push_back(current);
+                        stack.pop();
+                    } else ++endTime;
                 }
             }
         }
     }
 
+    int longestPath(vector<int> stackVector) {
+        
+        int finalResult = 0;
+        bool hasVisitedNeighnours;
+        vector<bool> visited(maxVertex + 1, false);
+        vector<int> jumpsVector(maxVertex + 1, 0);
 
-    void segundaDFS(int inicio, vector<bool>& visitado, vector<int>& arestasPorComponente, int& arestasNoCaminho) {
-        // falta um if algures que eu n estou a comoreender onde pq sou nabo
-        stack<int> pilha;
-        pilha.push(inicio);
+        for (int i = maxVertex - 1; i >= 0; i--) {
+            int vertex = stackVector[i];
 
-        while (!pilha.empty()) {
-            int v = pilha.top();
-            pilha.pop();
-
-            if (!visitado[v]) {
-                visitado[v] = true;
-
-                for (int vizinho : adj[v]) {
-                    // Verifica se a aresta é direcionada para o vizinho
-                    if (!visitado[vizinho]) {
-                        pilha.push(vizinho);
-
-                        // Incrementa o número de arestas no componente atual
-                        arestasPorComponente[v] += arestasPorComponente[v];
+            if (!visited[vertex]) {
+                visited[vertex] = true;
+                hasVisitedNeighnours = false;
+                for (int neighbour : reverseAdj[vertex]) {
+                    if (visited[neighbour]) {
+                        hasVisitedNeighnours = true;
+                        break;
                     }
                 }
-
-                // Atualiza o número total de arestas no caminho
-                arestasNoCaminho = max(arestasNoCaminho, arestasPorComponente[v] + int(adj[v].size()));
+                // Caso não entre aqui, valor desse vértice no vetor permanece a 0.
+                if (hasVisitedNeighnours) {
+                    stack<int> SCCStack;
+                    vector<int> auxSCC;
+                    int maxAux = 0;
+                    SCCStack.push(vertex);
+                    
+                    while (!SCCStack.empty()) {
+                        int SCCComponent = SCCStack.top();
+                        auxSCC.push_back(SCCComponent);
+                        SCCStack.pop();
+                        for (int neighbour : reverseAdj[SCCComponent]) {
+                            if (jumpsVector[neighbour] > maxAux) maxAux = jumpsVector[neighbour];
+                            if (!visited[neighbour]) {
+                                visited[neighbour] = true;
+                                SCCStack.push(neighbour);
+                            }
+                        }
+                    }
+                    for (int auxiliar : auxSCC) jumpsVector[auxiliar] = maxAux + 1;
+                    if (jumpsVector[vertex] > finalResult) finalResult = jumpsVector[vertex];
+                }
             }
         }
+        return finalResult;
     }
 
-
-
-    int maiorCaminho() {
-        // Realiza a primeira DFS para obter os tempos de fim
-        vector<int> temposFim;
-        dfsIterativa(0, temposFim);
-
-        // Inicializa a segunda DFS
-        vector<bool> visitado(vertices, false);
-        vector<int> arestasPorComponente(vertices, 0);
-        int arestasNoCaminho = 0;
-
-        // Realiza a segunda DFS em ordem decrescente de tempos de fim
-        for (int i = temposFim.size() - 1; i >= 0; --i) {
-            int componente = temposFim[i];
-            if (!visitado[componente]) {
-                segundaDFS(componente, visitado, arestasPorComponente, arestasNoCaminho);
-            }
-        }
-
-        return arestasNoCaminho;
-    }
 };
 
 int main() {
-    int num_arestas, num_vertices;
+    int numEdges, maxVertex;
 
-    printf("Digite o número de vértices: ");
-    scanf("%d", &num_vertices);
-    Grafo grafo(num_vertices);
+    scanf("%d %d", &maxVertex, &numEdges);
 
-    printf("Digite o número de arestas: ");
-    scanf("%d", &num_arestas);
+    Graph graph(maxVertex);
+    graph.buildGraph(numEdges);
 
-    grafo.adicionarAresta(num_arestas);
+    vector<int> vector;
+    graph.iterativeDFS(1, vector);
 
-    int resultado = grafo.maiorCaminho();
+    printf("%d\n", graph.longestPath(vector));
 
-
-    vector<int> temposFim;
-    grafo.dfsIterativa(0, temposFim);
-    printf("Tempos de fim em ordem crescente: ");
-    for (int tempo : temposFim) {
-        printf("%d ", tempo);
-    }
-    printf("\n");
-
-    printf("Número de arestas no maior caminho: %d\n", resultado);
 
     return 0;
 }
