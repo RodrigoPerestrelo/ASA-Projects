@@ -74,6 +74,7 @@ public:
                         break;
                     }
                 }
+                
                 // Caso não entre aqui, valor desse vértice no vetor permanece a 0.
                 if (hasVisitedNeighnours) {
                     stack<int> SCCStack;
@@ -95,6 +96,20 @@ public:
                     }
                     for (int auxiliar : auxSCC) jumpsVector[auxiliar] = maxAux + 1;
                     if (jumpsVector[vertex] > finalResult) finalResult = jumpsVector[vertex];
+                } else {
+                    stack<int> SCCStack;
+                    SCCStack.push(vertex);
+                    while (!SCCStack.empty()) {
+                        int SCCComponent = SCCStack.top();
+                        visited[SCCComponent] = true;
+                        SCCStack.pop();
+                        for (int neighbour : reverseAdj[SCCComponent]) {
+                            if (!visited[neighbour]) {
+                                visited[neighbour] = true;
+                                SCCStack.push(neighbour);
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -111,10 +126,10 @@ int main() {
     Graph graph(maxVertex);
     graph.buildGraph(numEdges);
 
-    vector<int> vector;
-    graph.iterativeDFS(1, vector);
+    vector<int> stackVector;
+    graph.iterativeDFS(1, stackVector);
 
-    printf("%d\n", graph.longestPath(vector));
+    printf("%d\n", graph.longestPath(stackVector));
 
 
     return 0;
