@@ -3,43 +3,43 @@ from pulp import LpMaximize, LpProblem, LpVariable
 flag = 1
 
 # Input
-with open("input.txt", "r") as ficheiro:
-    # Trata primeira linha
-    n, p, max_brinquedos = map(int, ficheiro.readline().split())
+p_linha = input()
+n, p, max_brinquedos = map(int, p_linha.split())
 
-    # Lista de brinquedos
-    brinquedos = []
+# Lista de brinquedos
+brinquedos = []
 
-    # Detalhes para cada brinquedo e adicionar o mesmo à lista
-    for i in range(n):
-        valor, capacidade_producao = map(int, ficheiro.readline().split())
+# Detalhes para cada brinquedo e adicionar o mesmo à lista
+for i in range(n):
+    entrada_brinquedo = input()
+    valor, capacidade_producao = map(int, entrada_brinquedo.split())
 
-        # Dicionário para representar o brinquedo
-        brinquedo = {
-            'valor': valor,
-            'capacidade_producao': capacidade_producao
-        }
+    # Dicionário para representar o brinquedo
+    brinquedo = {
+        'valor': valor,
+        'capacidade_producao': capacidade_producao
+    }
 
-        # Adiciona o dicionário à lista de brinquedos
-        brinquedos.append(brinquedo)
+    # Adiciona o dicionário à lista de brinquedos
+    brinquedos.append(brinquedo)
 
-    # Lista de pacotes especiais
-    pacotes_especiais = []
 
-    # Detalhes para cada pacote especial e adicionar o mesmo à lista
-    for j in range(p):
-        x, y, z, lucro = map(int, ficheiro.readline().split())
+# Lista de pacotes especiais
+pacotes_especiais = []
 
-        # Dicionário para representar o pacote especial
-        pacote_especial = {
-            'brinquedos': [x-1, y-1, z-1],
-            'lucro': int(lucro)
-        }
+# Detalhes para cada pacote especial e adicionar o mesmo à lista
+for j in range(p):
+    entrada_pacote = input()
+    x, y, z, lucro = map(int, entrada_pacote.split())
 
-        # Adiciona o dicionário à lista de pacotes especiais
-        pacotes_especiais.append(pacote_especial)
+    # Dicionário para representar o pacote especial
+    pacote_especial = {
+        'brinquedos': [x-1, y-1, z-1],
+        'lucro': int(lucro)
+    }
 
-ficheiro.close()
+    # Adiciona o dicionário à lista de pacotes especiais
+    pacotes_especiais.append(pacote_especial)
 
 
 # Criação do problema
@@ -77,7 +77,6 @@ problema += (a * brinquedos[0]['valor'] + b * brinquedos[1]['valor'] + c * brinq
 # Adição das restrições
 problema += sum(variaveis_brinquedos) + sum(variaveis_pacotes) * 3 <= max_brinquedos, "Restricao_1"
 
-# Está MALLLLLL :(
 for i, brinquedo in enumerate(brinquedos):
     restricoes_brinquedo = []
 
@@ -124,5 +123,4 @@ for pacote_especial in pacotes_especiais:
 """
 
 # Exibindo os resultados
-print(f"Status: {problema.status}")
-print(f"Lucro Máximo: {problema.objective.value()}")
+print(f"{problema.objective.value()}")
