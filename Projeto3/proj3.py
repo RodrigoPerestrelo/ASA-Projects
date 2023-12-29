@@ -5,12 +5,12 @@ pacotes_especiais = []
 
 variaveis_brinquedos = []
 variaveis_pacotes = []
+
 funcao_objetivo = 0
 restricao_1 = 0
 
 # Criação do problema
 problema = LpProblem(name="Maximizar_Lucro", sense=LpMaximize)
-
 
 # Input
 n, p, max_brinquedos = [int(i) for i in input().split()]
@@ -24,10 +24,11 @@ for i in range(n):
         'valor': valor,
         'capacidade_producao': capacidade_producao,
     }
+    brinquedos.append(brinquedo)
 
     aux = LpVariable(name=f"brinquedo_{i}", lowBound=0)
     variaveis_brinquedos.append(aux)
-    brinquedos.append(brinquedo)
+
     funcao_objetivo += (aux * brinquedo['valor'])
     restricao_1 += aux
 
@@ -40,10 +41,11 @@ for j in range(p):
         'brinquedos': [x - 1, y - 1, z - 1],
         'lucro': int(lucro)
     }
+    pacotes_especiais.append(pacote_especial)
 
     aux = LpVariable(name=f"pacote_{j}", lowBound=0)
     variaveis_pacotes.append(aux)
-    pacotes_especiais.append(pacote_especial)
+
     funcao_objetivo += (aux * pacote_especial['lucro'])
     restricao_1 += (aux*3)
 
