@@ -1,59 +1,60 @@
-from pulp import LpMaximize, LpProblem, LpVariable
+from pulp import LpMaximize, LpProblem, LpVariable, value, PULP_CBC_CMD
 
-flag = 1
+brinquedos = []
+pacotes_especiais = []
+variaveis_brinquedos = []
+variaveis_pacotes = []
+funcao_objetivo = 0
+restricao_1 = 0
+
+# Criação do problema
+problema = LpProblem(name="Maximizar_Lucro", sense=LpMaximize)
+
 
 # Input
-p_linha = input()
-n, p, max_brinquedos = map(int, p_linha.split())
+n, p, max_brinquedos = [int(i) for i in input().split()]
 
-# Lista de brinquedos
-brinquedos = []
-
-# Detalhes para cada brinquedo e adicionar o mesmo à lista
+# Brinquedos
 for i in range(n):
-    entrada_brinquedo = input()
-    valor, capacidade_producao = map(int, entrada_brinquedo.split())
+    valor, capacidade_producao = [int(i) for i in input().split()]
 
     # Dicionário para representar o brinquedo
     brinquedo = {
         'valor': valor,
-        'capacidade_producao': capacidade_producao
+        'capacidade_producao': capacidade_producao,
+        'pacotes': []
     }
 
-    # Adiciona o dicionário à lista de brinquedos
+    aux = LpVariable(name=f"brinquedo_{i}", lowBound=0)
+    variaveis_brinquedos.append(aux)
     brinquedos.append(brinquedo)
+    funcao_objetivo += (aux * brinquedo['valor'])
+    restricao_1 += aux
 
-# Lista de pacotes especiais
-pacotes_especiais = []
-
-# Detalhes para cada pacote especial e adicionar o mesmo à lista
+# Pacotes
 for j in range(p):
-    entrada_pacote = input()
-    x, y, z, lucro = map(int, entrada_pacote.split())
+    x, y, z, lucro = [int(i) for i in input().split()]
 
     # Dicionário para representar o pacote especial
     pacote_especial = {
         'brinquedos': [x - 1, y - 1, z - 1],
         'lucro': int(lucro)
     }
+    brinquedos[x - 1]["pacotes"].append(pacote_especial)
+    brinquedos[y - 1]["pacotes"].append(pacote_especial)
+    brinquedos[z - 1]["pacotes"].append(pacote_especial)
 
-    # Adiciona o dicionário à lista de pacotes especiais
+    aux = LpVariable(name=f"pacote_{j}", lowBound=0)
+    variaveis_pacotes.append(aux)
     pacotes_especiais.append(pacote_especial)
-
-# Criação do problema
-problema = LpProblem(name="Maximizar_Lucro", sense=LpMaximize)
-
-# Criação das variáveis de decisão
-variaveis_brinquedos = [LpVariable(name=f"brinquedo_{i}", lowBound=0) for i in range(len(brinquedos))]
-variaveis_pacotes = [LpVariable(name=f"pacote_{i}", lowBound=0) for i in range(len(pacotes_especiais))]
+    funcao_objetivo += (aux * pacote_especial['lucro'])
+    restricao_1 += (aux*3)
 
 # Adição da função objetivo
-problema += (sum(variavel * brinquedo['valor'] for variavel, brinquedo in zip(variaveis_brinquedos, brinquedos)) +
-             sum(variavel * pacote['lucro'] for variavel, pacote in zip(variaveis_pacotes, pacotes_especiais)),
-             "Funcao_Objetivo")
+problema += (funcao_objetivo, "Funcao_Objetivo")
 
 # Adição das restrições
-problema += sum(variaveis_brinquedos) + sum(variaveis_pacotes) * 3 <= max_brinquedos, "Restricao_1"
+problema += restricao_1 <= max_brinquedos, "Restricao_1"
 
 for i, brinquedo in enumerate(brinquedos):
     restricoes_brinquedo = []
@@ -68,8 +69,8 @@ for i, brinquedo in enumerate(brinquedos):
     else:
         problema += variaveis_brinquedos[i] <= brinquedo['capacidade_producao'], f"Restricao_{i + 2}"
 
-# Resolve o problema
-problema.solve()
+# Resolução do problema
+problema.solve(PULP_CBC_CMD(msg=False))
 
-# Exibindo os resultados
-print(f"{problema.objective.value()}")
+# Exibição dos resultados
+print(f"{int(value(problema.objective))}")
