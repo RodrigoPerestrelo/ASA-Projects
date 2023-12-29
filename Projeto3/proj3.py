@@ -2,6 +2,7 @@ from pulp import LpMaximize, LpProblem, LpVariable, value, PULP_CBC_CMD
 
 brinquedos = []
 pacotes_especiais = []
+
 variaveis_brinquedos = []
 variaveis_pacotes = []
 funcao_objetivo = 0
@@ -22,7 +23,6 @@ for i in range(n):
     brinquedo = {
         'valor': valor,
         'capacidade_producao': capacidade_producao,
-        'pacotes': []
     }
 
     aux = LpVariable(name=f"brinquedo_{i}", lowBound=0)
@@ -40,9 +40,6 @@ for j in range(p):
         'brinquedos': [x - 1, y - 1, z - 1],
         'lucro': int(lucro)
     }
-    brinquedos[x - 1]["pacotes"].append(pacote_especial)
-    brinquedos[y - 1]["pacotes"].append(pacote_especial)
-    brinquedos[z - 1]["pacotes"].append(pacote_especial)
 
     aux = LpVariable(name=f"pacote_{j}", lowBound=0)
     variaveis_pacotes.append(aux)
