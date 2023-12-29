@@ -1,4 +1,4 @@
-from pulp import LpMaximize, LpProblem, LpVariable, value, PULP_CBC_CMD
+from pulp import LpMaximize, LpProblem, LpVariable, value, LpInteger, GLPK
 
 brinquedos = []
 pacotes_especiais = []
@@ -26,7 +26,7 @@ for i in range(n):
     }
     brinquedos.append(brinquedo)
 
-    aux = LpVariable(name=f"brinquedo_{i}", lowBound=0)
+    aux = LpVariable(name=f"brinquedo_{i}", lowBound=0, cat=LpInteger)
     variaveis_brinquedos.append(aux)
 
     funcao_objetivo += (aux * brinquedo['valor'])
@@ -43,7 +43,7 @@ for j in range(p):
     }
     pacotes_especiais.append(pacote_especial)
 
-    aux = LpVariable(name=f"pacote_{j}", lowBound=0)
+    aux = LpVariable(name=f"pacote_{j}", lowBound=0, cat=LpInteger)
     variaveis_pacotes.append(aux)
 
     funcao_objetivo += (aux * pacote_especial['lucro'])
@@ -56,20 +56,20 @@ problema += (funcao_objetivo, "Funcao_Objetivo")
 problema += restricao_1 <= max_brinquedos, "Restricao_1"
 
 for i, brinquedo in enumerate(brinquedos):
-    restricoes_brinquedo = []
+    restricoes_brinquedo = variaveis_brinquedos[i]
 
     for j, pacote in enumerate(pacotes_especiais):
         if i in pacote['brinquedos']:
-            restricoes_brinquedo.append(variaveis_pacotes[j])
+            restricoes_brinquedo += variaveis_pacotes[j] * pacote['brinquedos'].count(i)
 
-    if restricoes_brinquedo:
-        problema += (sum(restricoes_brinquedo) + variaveis_brinquedos[i] <= brinquedo['capacidade_producao'],
-                     f"Restricao_{i + 2}")
+    if restricoes_brinquedo != variaveis_brinquedos[i]:
+        problema += (restricoes_brinquedo <= brinquedo['capacidade_producao'],
+                f"Restricao_{i + 2}")
     else:
         problema += variaveis_brinquedos[i] <= brinquedo['capacidade_producao'], f"Restricao_{i + 2}"
 
 # Resolução do problema
-problema.solve(PULP_CBC_CMD(msg=False))
+status = problema.solve(GLPK(msg=0))
 
 # Exibição dos resultados
 print(f"{int(value(problema.objective))}")
