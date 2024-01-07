@@ -1,10 +1,4 @@
-from pulp import LpMaximize, LpProblem, LpVariable, value, LpInteger, GLPK
-
-brinquedos = []
-pacotes_especiais = []
-
-variaveis_brinquedos = []
-variaveis_pacotes = []
+from pulp import LpMaximize, LpProblem, LpVariable, value, GLPK, LpInteger, lpSum
 
 funcao_objetivo = 0
 restricao_1 = 0
@@ -13,63 +7,61 @@ restricao_1 = 0
 problema = LpProblem(name="Maximizar_Lucro", sense=LpMaximize)
 
 # Input
-n, p, max_brinquedos = [int(i) for i in input().split()]
+n, p, max_brinquedos = map(int, input().split())
+
+brinquedos = [None] * n
+restriction_1 = [None] * n
+objective_function = [None] * n
+capacidade_producao_lista =  [None] * n
+teste = [None] * n
 
 # Brinquedos
 for i in range(n):
-    valor, capacidade_producao = [int(i) for i in input().split()]
+    valor, capacidade_producao = map(int, input().split())
+    aux = LpVariable(name=f"brinquedo_{i}", lowBound=0, upBound=capacidade_producao, cat=LpInteger)
 
     # Dicionário para representar o brinquedo
-    brinquedo = {
-        'valor': valor,
-        'capacidade_producao': capacidade_producao,
-    }
-    brinquedos.append(brinquedo)
-
-    aux = LpVariable(name=f"brinquedo_{i}", lowBound=0, cat=LpInteger)
-    variaveis_brinquedos.append(aux)
-
-    funcao_objetivo += (aux * brinquedo['valor'])
-    restricao_1 += aux
+    capacidade_producao_lista[i] = capacidade_producao
+    brinquedos[i] = aux
+    objective_function[i] = aux * valor
+    restriction_1[i] = aux
 
 # Pacotes
 for j in range(p):
-    x, y, z, lucro = [int(i) for i in input().split()]
+    x, y, z, lucro = map(int, input().split())
+    toys1 = capacidade_producao_lista[x-1]
+    toys2 = capacidade_producao_lista[y-1]      
+    toys3 = capacidade_producao_lista[z-1]      
+    zecarlos = min(toys1, toys2, toys3)
+    aux = LpVariable(name=f"pacote_{j}", lowBound=0, upBound=zecarlos, cat=LpInteger)
 
-    # Dicionário para representar o pacote especial
-    pacote_especial = {
-        'brinquedos': [x - 1, y - 1, z - 1],
-        'lucro': int(lucro)
-    }
-    pacotes_especiais.append(pacote_especial)
+    if teste[x-1] != None:
+        teste[x-1].append(aux)
+    else:
+        teste[x-1] = [aux]
+    if teste[y-1] != None:
+        teste[y-1].append(aux)
+    else:
+        teste[y-1] = [aux]
+    if teste[z-1] != None:
+        teste[z-1].append(aux)
+    else:
+        teste[z-1] = [aux]
 
-    aux = LpVariable(name=f"pacote_{j}", lowBound=0, cat=LpInteger)
-    variaveis_pacotes.append(aux)
-
-    funcao_objetivo += (aux * pacote_especial['lucro'])
-    restricao_1 += (aux*3)
+    objective_function[j] += (aux * lucro)
+    restriction_1[j] += aux*3
 
 # Adição da função objetivo
-problema += (funcao_objetivo, "Funcao_Objetivo")
-
+problema += lpSum(objective_function)
 # Adição das restrições
-problema += restricao_1 <= max_brinquedos, "Restricao_1"
+problema += lpSum(restriction_1) <= max_brinquedos, "Restricao_1"
 
-for i, brinquedo in enumerate(brinquedos):
-    restricoes_brinquedo = variaveis_brinquedos[i]
-
-    for j, pacote in enumerate(pacotes_especiais):
-        if i in pacote['brinquedos']:
-            restricoes_brinquedo += variaveis_pacotes[j] * pacote['brinquedos'].count(i)
-
-    if restricoes_brinquedo != variaveis_brinquedos[i]:
-        problema += (restricoes_brinquedo <= brinquedo['capacidade_producao'],
-                f"Restricao_{i + 2}")
-    else:
-        problema += variaveis_brinquedos[i] <= brinquedo['capacidade_producao'], f"Restricao_{i + 2}"
+for i in range(n):
+    if(teste[i] != None):
+        problema += lpSum(teste[i]) + brinquedos[i] <= capacidade_producao_lista[i], f"Restricao_{i + 2}"
 
 # Resolução do problema
-status = problema.solve(GLPK(msg=0))
+problema.solve(GLPK(msg=0))
 
 # Exibição dos resultados
-print(f"{int(value(problema.objective))}")
+print(int(value(problema.objective)))
